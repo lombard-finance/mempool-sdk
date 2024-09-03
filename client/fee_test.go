@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lombard-finance/mempool-sdk/api/address"
+	"github.com/lombard-finance/mempool-sdk/api/fee"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
-func TestService_GetAddressTransactions(t *testing.T) {
+func TestService_GetRecommendedFees(t *testing.T) {
 	logger := logrus.New()
 
 	base, err := url.Parse("https://mempool.space/signet/api")
@@ -41,14 +41,10 @@ func TestService_GetAddressTransactions(t *testing.T) {
 		client  *http.Client
 		timeout time.Duration
 	}
-	type args struct {
-		addr string
-	}
 	tests := []struct {
 		name    string
 		fields  fields
-		args    args
-		want    *address.GetAddressTransactions200Response
+		want    *fee.GetRecommendedFees200Response
 		wantErr bool
 	}{
 		{
@@ -59,7 +55,6 @@ func TestService_GetAddressTransactions(t *testing.T) {
 				client:  client,
 				timeout: timeout,
 			},
-			args:    args{addr: "tb1qjqyhgv3yn357r0fzv98eatx2fnyanate8dw575"},
 			wantErr: false,
 		},
 	}
@@ -71,15 +66,20 @@ func TestService_GetAddressTransactions(t *testing.T) {
 				client:  tt.fields.client,
 				timeout: tt.fields.timeout,
 			}
-			got, err := cli.GetAddressTransactions(tt.args.addr)
+			got, err := cli.GetRecommendedFees()
 			require.NoError(t, err)
 			t.Log(got)
 
-			for i, s2 := range got {
-				t.Log(i, s2)
-			}
+			// check that all fees are not nil and are not 0
+			require.True(t, got.MinimumFee > 0)
+			require.True(t, got.EconomyFee > 0)
+			require.True(t, got.HourFee > 0)
+			require.True(t, got.HalfHourFee > 0)
+			require.True(t, got.FastestFee > 0)
 
-			t.Logf("%v", got[0].Vout[0].ScriptpubkeyAddress)
+			// compare fastest and minimum fee
+			require.True(t, got.FastestFee >= got.MinimumFee)
+
 		})
 	}
 }
