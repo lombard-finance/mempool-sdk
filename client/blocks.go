@@ -11,6 +11,13 @@ func (cli *Client) GetBlocksHeight() (blocks.GetBlocksHeight200Response, error) 
 	if err != nil {
 		return 0, errors.Wrap(err, "request GetBlocksHeight")
 	}
+
 	decoded, err := decodeJSONResponse[blocks.GetBlocksHeight200Response](response)
+	if err != nil {
+		return 0, errors.Wrap(err, "decode GetBlocksHeight response")
+	}
+
+	cli.logger.WithField("block_height", decoded).Debug("fetched block height")
+
 	return decoded, nil
 }

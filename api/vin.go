@@ -10,6 +10,7 @@ type Vin struct {
 	IsCoinbase   bool     `json:"is_coinbase"`
 	Sequence     int64    `json:"sequence"`
 }
+
 type Prevout struct {
 	Scriptpubkey        string `json:"scriptpubkey"`
 	ScriptpubkeyAsm     string `json:"scriptpubkey_asm"`
