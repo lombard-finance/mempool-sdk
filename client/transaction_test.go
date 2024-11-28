@@ -146,7 +146,7 @@ func TestService_PostTransaction(t *testing.T) {
 				client:  tt.fields.client,
 				timeout: tt.fields.timeout,
 			}
-			_, err := cli.PostTransaction(tt.args.rawTransaction)
+			err := cli.PostTransaction(tt.args.rawTransaction)
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "bad-txns-inputs-missingorspent")
 
