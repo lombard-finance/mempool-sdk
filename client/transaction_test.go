@@ -124,7 +124,6 @@ func TestService_PostTransaction(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *transaction.PostTransaction200Response
 		wantErr bool
 	}{
 		{

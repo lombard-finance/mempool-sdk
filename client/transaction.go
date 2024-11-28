@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -29,18 +30,24 @@ func (cli *Client) GetTransaction(txid string) (*transaction.GetTransaction200Re
 	return &decoded, nil
 }
 
-func (cli *Client) PostTransaction(rawTransaction string) (*transaction.PostTransaction200Response, error) {
+func (cli *Client) PostTransaction(rawTransaction string) (string, error) {
 	response, err := cli.post("/tx", strings.NewReader(rawTransaction))
 	if err != nil {
-		return nil, errors.Wrap(err, "request PostTransaction")
+		return "", errors.Wrap(err, "request PostTransaction")
 	}
 
-	decoded, err := decodeJSONResponse[transaction.PostTransaction200Response](response)
+	// Use json.Decoder directly to decode the response
+	var decoded interface{}
+	if err := json.NewDecoder(response).Decode(&decoded); err != nil {
+		return "", errors.Wrap(err, "decode PostTransaction response")
+	}
+
+	// Convert the decoded JSON to a string representation
+	encoded, err := json.Marshal(decoded)
 	if err != nil {
-		return nil, errors.Wrap(err, "decode PostTransaction response")
+		return "", errors.Wrap(err, "encode PostTransaction response to string")
 	}
 
-	cli.logger.WithField("txid", decoded.Txid).Debug("posted transaction")
-
-	return &decoded, nil
+	cli.logger.WithField("txid", string(encoded)).Debug("posted transaction")
+	return string(encoded), nil
 }
