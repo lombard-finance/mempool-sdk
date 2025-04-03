@@ -29,18 +29,18 @@ func (cli *Client) GetTransaction(txid string) (*transaction.GetTransaction200Re
 	return &decoded, nil
 }
 
-func (cli *Client) PostTransaction(rawTransaction string) (*transaction.PostTransaction200Response, error) {
+func (cli *Client) PostTransaction(rawTransaction string) (transaction.PostTransaction200Response, error) {
 	response, err := cli.post("/tx", strings.NewReader(rawTransaction))
 	if err != nil {
-		return nil, errors.Wrap(err, "request PostTransaction")
+		return "", errors.Wrap(err, "request PostTransaction")
 	}
 
 	decoded, err := decodeJSONResponse[transaction.PostTransaction200Response](response)
 	if err != nil {
-		return nil, errors.Wrap(err, "decode PostTransaction response")
+		return "", errors.Wrap(err, "decode PostTransaction response")
 	}
 
-	cli.logger.WithField("txid", decoded.Txid).Debug("posted transaction")
+	cli.logger.WithField("txid", decoded).Debug("posted transaction")
 
-	return &decoded, nil
+	return decoded, nil
 }
