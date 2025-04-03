@@ -223,3 +223,79 @@ func TestService_GetTransactionHex(t *testing.T) {
 		})
 	}
 }
+
+func TestService_GetTransactionMerkleProof(t *testing.T) {
+	logger := logrus.New()
+
+	base, err := url.Parse("https://mempool.space/signet/api")
+	require.NoError(t, err)
+
+	timeout := time.Minute
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout: timeout,
+			}).DialContext,
+			MaxIdleConns:        32,
+			MaxConnsPerHost:     32,
+			MaxIdleConnsPerHost: 32,
+			IdleConnTimeout:     600 * time.Second,
+		},
+		CheckRedirect: nil,
+		Jar:           nil,
+		Timeout:       timeout,
+	}
+
+	type fields struct {
+		logger  *logrus.Entry
+		base    *url.URL
+		client  *http.Client
+		timeout time.Duration
+	}
+	type args struct {
+		txid string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *transaction.GetTransactionMerkleProof200Response
+		wantErr bool
+	}{
+		{
+			name: "success",
+			fields: fields{
+				logger:  logger.WithField("test", "test"),
+				base:    base,
+				client:  client,
+				timeout: timeout,
+			},
+			args:    args{txid: "fe80c0c2439d41d301f35570018b4239ca3204293e5e5fd68d64013e8fc45025"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := &Client{
+				logger:  tt.fields.logger,
+				base:    tt.fields.base,
+				client:  tt.fields.client,
+				timeout: tt.fields.timeout,
+			}
+			got, err := cli.GetTransactionMerkleProof(tt.args.txid)
+			require.NoError(t, err)
+			t.Log(got)
+
+			require.Equal(t, uint64(53788), got.BlockHeight)
+			require.Equal(t, uint64(1), got.Pos)
+			require.Len(t, got.Merkle, 5)
+			require.Equal(t, "e08449da447aef04c3435109a10a37e7bcf3675115d96c3150b31c2438b9e956", got.Merkle[0])
+			require.Equal(t, "027699486d6cc71669bbc8168632101ed95266dcd02fa8b757830d570ef54d15", got.Merkle[1])
+			require.Equal(t, "62458b115b3db7e9dafecb37de1fcb985891bc77a323018811b6d0392e3705a6", got.Merkle[2])
+			require.Equal(t, "3a32287eccca335a3dac6aede77855a78faed4060d16bb89517da9816a763cb4", got.Merkle[3])
+			require.Equal(t, "76a86eb801f1884b99389af3cd41a7994679c3f93c53f9fcf0505ab1340b329f", got.Merkle[4])
+
+		})
+	}
+}
