@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"strings"
 
@@ -35,12 +36,16 @@ func (cli *Client) PostTransaction(rawTransaction string) (transaction.PostTrans
 		return "", errors.Wrap(err, "request PostTransaction")
 	}
 
-	decoded, err := decodeJSONResponse[transaction.PostTransaction200Response](response)
+	// Read the entire response body as bytes
+	data, err := io.ReadAll(response)
 	if err != nil {
-		return "", errors.Wrap(err, "decode PostTransaction response")
+		return "", errors.Wrap(err, "read GetTransactionHex response")
 	}
 
-	cli.logger.WithField("txid", decoded).Debug("posted transaction")
+	// Convert the byte slice to a string
+	txid := transaction.PostTransaction200Response(string(data))
 
-	return decoded, nil
+	cli.logger.WithField("txid", txid).Debug("posted transaction")
+
+	return txid, nil
 }
