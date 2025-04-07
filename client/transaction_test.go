@@ -1,0 +1,301 @@
+package client
+
+import (
+	"net"
+	"net/http"
+	"net/url"
+	"testing"
+	"time"
+
+	"github.com/lombard-finance/mempool-sdk/api/transaction"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
+)
+
+func TestService_GetTransaction(t *testing.T) {
+	logger := logrus.New()
+
+	base, err := url.Parse("https://mempool.space/signet/api")
+	require.NoError(t, err)
+
+	timeout := time.Minute
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout: timeout,
+			}).DialContext,
+			MaxIdleConns:        32,
+			MaxConnsPerHost:     32,
+			MaxIdleConnsPerHost: 32,
+			IdleConnTimeout:     600 * time.Second,
+		},
+		CheckRedirect: nil,
+		Jar:           nil,
+		Timeout:       timeout,
+	}
+
+	type fields struct {
+		logger  *logrus.Entry
+		base    *url.URL
+		client  *http.Client
+		timeout time.Duration
+	}
+	type args struct {
+		txid string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *transaction.GetTransaction200Response
+		wantErr bool
+	}{
+		{
+			name: "success",
+			fields: fields{
+				logger:  logger.WithField("test", "test"),
+				base:    base,
+				client:  client,
+				timeout: timeout,
+			},
+			args:    args{txid: "6b58397274d9fcce5a8f3918e2c5fe778968d6f60d697dde0fe35c6a6ef94f5b"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := &Client{
+				logger:  tt.fields.logger,
+				base:    tt.fields.base,
+				client:  tt.fields.client,
+				timeout: tt.fields.timeout,
+			}
+			got, err := cli.GetTransaction(tt.args.txid)
+			require.NoError(t, err)
+			t.Log(got)
+
+			// check that txid matches and check status fields
+			require.Equal(t, tt.args.txid, got.Txid)
+			require.True(t, got.Status.Confirmed)
+			require.Equal(t, uint64(211313), got.Status.BlockHeight)
+			require.Equal(t, "0000002d608dad0ba5ecf5b388f4fafac879fccaa67c3b233e1f5000ff686932", got.Status.BlockHash)
+			require.Equal(t, 1725201424, got.Status.BlockTime)
+			require.Equal(t, 1, len(got.Vout))
+			require.Equal(t, 1, len(got.Vin))
+
+		})
+	}
+}
+
+func TestService_PostTransaction(t *testing.T) {
+	logger := logrus.New()
+
+	base, err := url.Parse("https://mempool.space/signet/api")
+	require.NoError(t, err)
+
+	timeout := time.Minute
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout: timeout,
+			}).DialContext,
+			MaxIdleConns:        32,
+			MaxConnsPerHost:     32,
+			MaxIdleConnsPerHost: 32,
+			IdleConnTimeout:     600 * time.Second,
+		},
+		CheckRedirect: nil,
+		Jar:           nil,
+		Timeout:       timeout,
+	}
+
+	type fields struct {
+		logger  *logrus.Entry
+		base    *url.URL
+		client  *http.Client
+		timeout time.Duration
+	}
+	type args struct {
+		rawTransaction string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    transaction.PostTransaction200Response
+		wantErr bool
+	}{
+		{
+			name: "successful spent tx",
+			fields: fields{
+				logger:  logger.WithField("test", "test"),
+				base:    base,
+				client:  client,
+				timeout: timeout,
+			},
+			args:    args{rawTransaction: "0200000001fd5b5fcd1cb066c27cfc9fda5428b9be850b81ac440ea51f1ddba2f987189ac1010000008a4730440220686a40e9d2dbffeab4ca1ff66341d06a17806767f12a1fc4f55740a7af24c6b5022049dd3c9a85ac6c51fecd5f4baff7782a518781bbdd94453c8383755e24ba755c01410436d554adf4a3eb03a317c77aa4020a7bba62999df633bba0ea8f83f48b9e01b0861d3b3c796840f982ee6b14c3c4b7ad04fcfcc3774f81bff9aaf52a15751fedfdffffff02416c00000000000017a914bc791b2afdfe1e1b5650864a9297b20d74c61f4787d71d0000000000001976a9140a59837ccd4df25adc31cdad39be6a8d97557ed688ac00000000"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := &Client{
+				logger:  tt.fields.logger,
+				base:    tt.fields.base,
+				client:  tt.fields.client,
+				timeout: tt.fields.timeout,
+			}
+			_, err := cli.PostTransaction(tt.args.rawTransaction)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "bad-txns-inputs-missingorspent")
+
+		})
+	}
+}
+
+func TestService_GetTransactionHex(t *testing.T) {
+	logger := logrus.New()
+
+	base, err := url.Parse("https://mempool.space/signet/api")
+	require.NoError(t, err)
+
+	timeout := time.Minute
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout: timeout,
+			}).DialContext,
+			MaxIdleConns:        32,
+			MaxConnsPerHost:     32,
+			MaxIdleConnsPerHost: 32,
+			IdleConnTimeout:     600 * time.Second,
+		},
+		CheckRedirect: nil,
+		Jar:           nil,
+		Timeout:       timeout,
+	}
+
+	type fields struct {
+		logger  *logrus.Entry
+		base    *url.URL
+		client  *http.Client
+		timeout time.Duration
+	}
+	type args struct {
+		txid string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *transaction.GetTransaction200Response
+		wantErr bool
+	}{
+		{
+			name: "success",
+			fields: fields{
+				logger:  logger.WithField("test", "test"),
+				base:    base,
+				client:  client,
+				timeout: timeout,
+			},
+			args:    args{txid: "fe80c0c2439d41d301f35570018b4239ca3204293e5e5fd68d64013e8fc45025"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := &Client{
+				logger:  tt.fields.logger,
+				base:    tt.fields.base,
+				client:  tt.fields.client,
+				timeout: tt.fields.timeout,
+			}
+			got, err := cli.GetTransactionHex(tt.args.txid)
+			require.NoError(t, err)
+			t.Log(got)
+
+			// check that tx hex matches
+			require.Equal(t, "02000000000101b7913f140f19850975352064a7ccfd7e96e1ed9a847c463309839a37c9d01e530000000000ffffffff017d65a61d000000002200204ae81572f06e1b88fd5ced7a1a000945432e83e1551e6f721ee9c00b8cc3326001015100000000", got)
+		})
+	}
+}
+
+func TestService_GetTransactionMerkleProof(t *testing.T) {
+	logger := logrus.New()
+
+	base, err := url.Parse("https://mempool.space/signet/api")
+	require.NoError(t, err)
+
+	timeout := time.Minute
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout: timeout,
+			}).DialContext,
+			MaxIdleConns:        32,
+			MaxConnsPerHost:     32,
+			MaxIdleConnsPerHost: 32,
+			IdleConnTimeout:     600 * time.Second,
+		},
+		CheckRedirect: nil,
+		Jar:           nil,
+		Timeout:       timeout,
+	}
+
+	type fields struct {
+		logger  *logrus.Entry
+		base    *url.URL
+		client  *http.Client
+		timeout time.Duration
+	}
+	type args struct {
+		txid string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    *transaction.GetTransactionMerkleProof200Response
+		wantErr bool
+	}{
+		{
+			name: "success",
+			fields: fields{
+				logger:  logger.WithField("test", "test"),
+				base:    base,
+				client:  client,
+				timeout: timeout,
+			},
+			args:    args{txid: "fe80c0c2439d41d301f35570018b4239ca3204293e5e5fd68d64013e8fc45025"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := &Client{
+				logger:  tt.fields.logger,
+				base:    tt.fields.base,
+				client:  tt.fields.client,
+				timeout: tt.fields.timeout,
+			}
+			got, err := cli.GetTransactionMerkleProof(tt.args.txid)
+			require.NoError(t, err)
+			t.Log(got)
+
+			require.Equal(t, uint64(53788), got.BlockHeight)
+			require.Equal(t, uint64(1), got.Pos)
+			require.Len(t, got.Merkle, 5)
+			require.Equal(t, "e08449da447aef04c3435109a10a37e7bcf3675115d96c3150b31c2438b9e956", got.Merkle[0])
+			require.Equal(t, "027699486d6cc71669bbc8168632101ed95266dcd02fa8b757830d570ef54d15", got.Merkle[1])
+			require.Equal(t, "62458b115b3db7e9dafecb37de1fcb985891bc77a323018811b6d0392e3705a6", got.Merkle[2])
+			require.Equal(t, "3a32287eccca335a3dac6aede77855a78faed4060d16bb89517da9816a763cb4", got.Merkle[3])
+			require.Equal(t, "76a86eb801f1884b99389af3cd41a7994679c3f93c53f9fcf0505ab1340b329f", got.Merkle[4])
+
+		})
+	}
+}

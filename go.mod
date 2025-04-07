@@ -1,6 +1,6 @@
 module github.com/lombard-finance/mempool-sdk
 
-go 1.22.3
+go 1.22
 
 require (
 	github.com/pkg/errors v0.9.1

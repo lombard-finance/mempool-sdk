@@ -1,10 +1,10 @@
 package client
 
 import (
-	"bytes"
 	"encoding/json"
-	"github.com/pkg/errors"
 	"io"
+
+	"github.com/pkg/errors"
 )
 
 func decodeJSONResponse[T any](body io.Reader) (T, error) {
@@ -19,12 +19,4 @@ func decodeJSONResponse[T any](body io.Reader) (T, error) {
 	}
 
 	return res, nil
-}
-
-func encodeJSONRequest(request any) (io.Reader, error) {
-	encoded, err := json.Marshal(request)
-	if err != nil {
-		return nil, errors.Wrap(err, "marshal request")
-	}
-	return bytes.NewBuffer(encoded), nil
 }

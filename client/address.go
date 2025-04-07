@@ -2,9 +2,11 @@ package client
 
 import (
 	"fmt"
+	"net/url"
+
 	"github.com/lombard-finance/mempool-sdk/api/address"
 	"github.com/pkg/errors"
-	"net/url"
+	"github.com/sirupsen/logrus"
 )
 
 func (cli *Client) GetAddress(addr string) (address.GetAddress200Response, error) {
@@ -12,10 +14,17 @@ func (cli *Client) GetAddress(addr string) (address.GetAddress200Response, error
 	if err != nil {
 		return address.GetAddress200Response{}, errors.Wrap(err, "request GetAddress") // Return an empty struct
 	}
+
 	decoded, err := decodeJSONResponse[address.GetAddress200Response](response)
 	if err != nil {
 		return address.GetAddress200Response{}, errors.Wrap(err, "decode GetAddress response") // Return an empty struct
 	}
+
+	cli.logger.WithFields(logrus.Fields{
+		"address":       addr,
+		"address_stats": decoded,
+	}).Debug("fetched address stats")
+
 	return decoded, nil
 }
 
@@ -25,11 +34,17 @@ func (cli *Client) GetAddressTransactions(addr string) (address.GetAddressTransa
 	if err != nil {
 		return nil, errors.Wrap(err, "request GetAddressTransactions")
 	}
+
 	decoded, err := decodeJSONResponse[address.GetAddressTransactions200Response](response)
 	if err != nil {
 		return nil, errors.Wrap(err, "decode GetAddressTransactions response")
 	}
-	cli.logger.WithField("address", addr).WithField("transactions", decoded).Debug("fetched transactions")
+
+	cli.logger.WithFields(logrus.Fields{
+		"address":      addr,
+		"transactions": decoded,
+	}).Debug("fetched address transactions")
+
 	return decoded, nil
 }
 
@@ -39,6 +54,16 @@ func (cli *Client) GetAddressUTXOs(addr string) (address.GetAddressUtxos200Respo
 	if err != nil {
 		return nil, errors.Wrap(err, "request GetAddressUTXOs")
 	}
+
 	decoded, err := decodeJSONResponse[address.GetAddressUtxos200Response](response)
+	if err != nil {
+		return nil, errors.Wrap(err, "decode GetAddressUTXOs response")
+	}
+
+	cli.logger.WithFields(logrus.Fields{
+		"address": addr,
+		"utxos":   decoded,
+	}).Debug("fetched address utxos")
+
 	return decoded, nil
 }
